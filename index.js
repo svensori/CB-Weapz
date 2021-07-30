@@ -23,7 +23,6 @@ const STAT_MAP = {
   dexterity: 'earth'
 };
 
-showDate();
 showItemSearchInfo();
 getWeapons(buildRequestUrls());
 
@@ -83,24 +82,8 @@ function getWeapons(requestUrls) {
   });
 }
 
-function showDate() {
-  let date = new Date();
-  const day = date.toLocaleString('default', { day: '2-digit' });
-  const month = date.toLocaleString('default', { month: 'short' });
-  const year = date.toLocaleString('default', { year: 'numeric' });
-  let hr = date.getHours();
-  let min = date.getMinutes();
-  let tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  
-  var ampm = "AM";
-  if( hr > 12 ) {
-      ampm = "PM";
-  }
-
-  console.log(`${month} ${day}, ${year} ${hr}:${min} ${ampm} ${tz}+${(new Date()).getTimezoneOffset()/60}`);
-}
-
 function showItemSearchInfo() {
+  console.log(new Date());
   console.log(`Showing ${params.pure ? 'pure ' : ''}${params.weaponStars}* weapons (${!!params.element ? params.element : 'all'}), under ${params.maxPrice} SKILL.`);
 }
 
