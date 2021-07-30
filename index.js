@@ -8,9 +8,9 @@ const params = {
   element: '',
   weaponStars: 5,
   minPrice: 0,
-  maxPrice: 5,
+  maxPrice: 1111,
   numOfPages: 4,
-  pure: false
+  pure: true
 }
 
 /**
@@ -29,57 +29,56 @@ getWeapons(buildRequestUrls());
 function getWeapons(requestUrls) {
   requestUrls.forEach((url, i) => {
     setTimeout(() => {
-      try {
-        request.get(url, (error, response, body) => {  
-          const itemList = JSON.parse(response.body);
-          let result = [...itemList.results];
-          console.log
-          /**
-           * Filter Price
-           */
-          result = result
-            .filter(e => {
-              const marketPrice = (e.price * 0.10) + e.price;
-              return marketPrice >= params.minPrice && marketPrice <= params.maxPrice
-            })
-            .sort((w1, w2) => w1.price - w2.price);
-        
-          /**
-           * Filter pure weapons
-           */
-          if (params.pure) {
-            result = result.filter(e => e.weaponElement === STAT_MAP[e.stat1Element]);
-        
-            if (params.weaponStars >= 4) {
-              result = result.filter(e => e.weaponElement === STAT_MAP[e.stat2Element]);
-            }
-        
-            if (params.weaponStars === 5) {
-              result = result.filter(e => e.weaponElement === STAT_MAP[e.stat3Element]);
-            }
-          }
-          
-          result = result
-            .map(({weaponId, weaponElement, stat1Element, stat2Element, stat3Element, price}) => {
-              const s1 = stat1Element.substring(0,3).toUpperCase();
-              const s2 = stat2Element.substring(0,3).toUpperCase();
-              const s3 = stat3Element.substring(0,3).toUpperCase();
-              const element = weaponElement.substring(0,3).toUpperCase();
-              return {
-                i: weaponId,
-                e: element,
-                s: `${s1} ${s2} ${s3}`.trim(),
-                p: (price + (price * 0.1)).toFixed(3)
-              };
-            });
+      request.get(url, (error, response, body) => {  
+        const itemList = JSON.parse(response.body);
 
-          console.log(`Page ${i + 1}: `, result);
-        }); 
-      } catch (e) {
-        console.log('Error retrieving records please try again after few seconds.')
-      }
+        const result = itemList.results 
+          .sort(sortPrice)
+          .filter(filterPrice)
+          .filter(filterPure)
+          .map(mapResultOutput);
+
+        console.log(`Page ${i + 1}: `, result);
+      });
     }, i * 5000)
   });
+}
+
+function filterPrice(weapon) { 
+  const marketPrice = (weapon.price * 0.10) + weapon.price;
+  return marketPrice >= params.minPrice && marketPrice <= params.maxPrice;
+}
+
+function sortPrice(w1, w2) {
+  return w1.price - w2.price;
+}
+
+function filterPure(weapon) {
+  if (!params.pure) { return true; }
+  const weaponElement = weapon.weaponElement;
+  const s1Match = weaponElement === STAT_MAP[weapon.stat1Element];
+  const s2Match = weaponElement === STAT_MAP[weapon.stat2Element];
+  const s3Match = weaponElement === STAT_MAP[weapon.stat3Element];
+  if (params.weaponStars === 5) {
+    return s1Match && s2Match && s3Match;
+  } else if (params.weaponStars === 4) {
+    return s1Match && s2Match;
+  } else {
+    return s1Match
+  } 
+}
+
+function mapResultOutput(weapon) {
+  const s1 = weapon.stat1Element.substring(0,3).toUpperCase();
+  const s2 = weapon.stat2Element.substring(0,3).toUpperCase();
+  const s3 = weapon.stat3Element.substring(0,3).toUpperCase();
+  const element = weapon.weaponElement.substring(0,3).toUpperCase();
+  return {
+    i: weapon.weaponId,
+    e: element,
+    s: `${s1} ${s2} ${s3}`.trim(),
+    p: (weapon.price + (weapon.price * 0.1)).toFixed(3)
+  };
 }
 
 function showItemSearchInfo() {
