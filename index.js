@@ -6,10 +6,11 @@ var request = require("request");
 const params = {
   // water, fire, earth, lightning, leave blank for any
   element: '',
-  weaponStars: 5,
+  weaponStars: 3,
   minPrice: 0,
-  maxPrice: 1111,
-  numOfPages: 4,
+  maxPrice: 0.7,
+  numOfPages: 99,
+  fromPage: 1,
   pure: true
 }
 
@@ -19,33 +20,33 @@ const params = {
 const STAT_MAP = {
   charisma: 'lightning',
   strength: 'fire',
-  intelligenece: 'water',
+  intelligence: 'water',
   dexterity: 'earth'
 };
 
+console.clear();
 showItemSearchInfo();
 getWeapons(buildRequestUrls());
 
 function getWeapons(requestUrls) {
   requestUrls.forEach((url, i) => {
     setTimeout(() => {
-      request.get(url, (error, response, body) => {  
+      request.get(url, (error, response, body) => {
         const itemList = JSON.parse(response.body);
-
-        const result = itemList.results 
-          .sort(sortPrice)
-          .filter(filterPrice)
-          .filter(filterPure)
-          .map(mapResultOutput);
-
-        console.log(`Page ${i + 1}: `, result);
+        const result = (itemList.results || [])
+                        .sort(sortPrice)
+                        .filter(filterPrice)
+                        .filter(filterPure)
+                        .map(mapResultOutput);
+        console.log(`Page ${i + params.fromPage}: `);
+        result.forEach(e => console.log(e));
       });
-    }, i * 5000)
+    }, i * 6000)
   });
 }
 
 function filterPrice(weapon) { 
-  const marketPrice = (weapon.price * 0.10) + weapon.price;
+  const marketPrice = getMarketPrice(weapon.price);
   return marketPrice >= params.minPrice && marketPrice <= params.maxPrice;
 }
 
@@ -69,17 +70,16 @@ function filterPure(weapon) {
 }
 
 function mapResultOutput(weapon) {
-  const s1 = weapon.stat1Element.substring(0,3).toUpperCase();
-  const s2 = weapon.stat2Element.substring(0,3).toUpperCase();
-  const s3 = weapon.stat3Element.substring(0,3).toUpperCase();
-  const element = weapon.weaponElement.substring(0,3).toUpperCase();
-  return {
-    i: weapon.weaponId,
-    e: element,
-    s: `${s1} ${s2} ${s3}`.trim(),
-    p: (weapon.price + (weapon.price * 0.1)).toFixed(3)
-  };
+  const element = elem => elem.substring(0, 3).toUpperCase();
+  const s1 = `${element(weapon.stat1Element)}(${weapon.stat1Value})`;
+  const s2 = `${element(weapon.stat2Element)}(${weapon.stat2Value})`;
+  const s3 = `${element(weapon.stat3Element)}(${weapon.stat3Value})`;
+  const stats = `${!!weapon.stat1Element ? s1: ''} ${!!weapon.stat2Element ? s2 : ''} ${!!weapon.stat3Element ? s3 : ''}`.trim();
+
+  return `${weapon.weaponId.padEnd(7)} - ${element(weapon.weaponElement)} - ${stats} - ${getMarketPrice(weapon.price)}`
 }
+
+const getMarketPrice = price => parseFloat(price + (price * 0.1)).toFixed(3);
 
 function showItemSearchInfo() {
   console.log(new Date());
@@ -88,8 +88,10 @@ function showItemSearchInfo() {
 
 function buildRequestUrls() {
   const urls = [];
-  for (let currentPage = 1; currentPage <= params.numOfPages; currentPage++) {
-    urls.push(`https://api.cryptoblades.io/static/market/weapon?element=${params.element}&minStars=${params.weaponStars}&maxStars=${params.weaponStars}&sortBy=&sortDir=&pageSize=60&pageNum=${currentPage - 1}`);
+  const startPage = params.fromPage;
+  const endPage = params.numOfPages + params.fromPage;
+  for (let currentPage = startPage; currentPage <= endPage; currentPage++) {
+    urls.push(`https://api.cryptoblades.io/static/market/weapon?element=${params.element}&minStars=${params.weaponStars}&maxStars=${params.weaponStars}&pageSize=60&pageNum=${currentPage}`);
   }
   return urls;
 }
